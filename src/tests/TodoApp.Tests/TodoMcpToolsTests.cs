@@ -170,6 +170,25 @@ public class TodoMcpToolsTests
     }
 
     [Fact]
+    public void RestoreTodos_PreservesCompletionStatus()
+    {
+        var service = CreateService();
+
+        var backup = JsonSerializer.Serialize(new[]
+        {
+            new TodoItem { Title = "Active task", IsCompleted = false },
+            new TodoItem { Title = "Done task", IsCompleted = true }
+        });
+
+        TodoMcpTools.RestoreTodos(service, backup);
+
+        var all = service.GetAll();
+        Assert.Equal(2, all.Count);
+        Assert.False(all[0].IsCompleted);
+        Assert.True(all[1].IsCompleted);
+    }
+
+    [Fact]
     public void RestoreTodos_InvalidJson_ReturnsErrorMessage()
     {
         var service = CreateService();

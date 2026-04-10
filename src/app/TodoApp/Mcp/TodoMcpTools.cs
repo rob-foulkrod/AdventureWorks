@@ -89,13 +89,15 @@ public class TodoMcpTools
             todoService.Delete(existing.Id);
         }
 
-        var restored = 0;
         foreach (var item in items)
         {
-            todoService.Add(item.Title, item.Description, item.Priority);
-            restored++;
+            var added = todoService.Add(item.Title, item.Description, item.Priority);
+            if (item.IsCompleted)
+            {
+                todoService.ToggleComplete(added.Id);
+            }
         }
 
-        return $"Restored {restored} todo(s).";
+        return $"Restored {items.Count} todo(s).";
     }
 }
