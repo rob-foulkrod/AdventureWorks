@@ -9,6 +9,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSingleton<TodoService>();
 
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -22,6 +26,8 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
+
+app.MapMcp("/mcp").DisableAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
