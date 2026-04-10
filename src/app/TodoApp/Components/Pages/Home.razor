@@ -1,0 +1,267 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using TodoApp.Models
+@using TodoApp.Services
+@inject TodoService TodoService
+
+<PageTitle>My To-Do List</PageTitle>
+
+<div class="todo-hero">
+    <h1><i class="bi bi-check2-square me-2"></i>My To-Do List</h1>
+    <p>Stay organised, get things done.</p>
+</div>
+
+@{
+    var total = TodoService.CountTotal();
+    var active = TodoService.CountActive();
+    var done = TodoService.CountCompleted();
+    var pct = total == 0 ? 0 : (int)Math.Round((double)done / total * 100);
+}
+
+<!-- Stats -->
+<div class="stats-bar">
+    <div class="stat-card total">
+        <div class="stat-number">@total</div>
+        <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card active">
+        <div class="stat-number">@active</div>
+        <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card done">
+        <div class="stat-number">@done</div>
+        <div class="stat-label">Done</div>
+    </div>
+</div>
+
+<!-- Progress -->
+@if (total > 0)
+{
+    <div class="progress-section">
+        <div class="progress-label">
+            <span>Progress</span>
+            <span>@pct%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-valuenow="@pct" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: @pct%"></div>
+        </div>
+    </div>
+}
+
+<!-- Add Task Form -->
+<div class="add-form-card">
+    <div class="row g-2 align-items-end">
+        <div class="col-12 col-md">
+            <input @bind="newTitle"
+                   @bind:event="oninput"
+                   @onkeydown="HandleAddKeyDown"
+                   class="form-control"
+                   placeholder="What needs to be done?"
+                   maxlength="200" />
+        </div>
+        <div class="col-12 col-md">
+            <input @bind="newDescription"
+                   class="form-control"
+                   placeholder="Description (optional)"
+                   maxlength="500" />
+        </div>
+        <div class="col-auto">
+            <select @bind="newPriority" class="form-select">
+                <option value="@Priority.Low">🟢 Low</option>
+                <option value="@Priority.Medium" selected>🟡 Medium</option>
+                <option value="@Priority.High">🔴 High</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn-add" @onclick="AddTask" disabled="@string.IsNullOrWhiteSpace(newTitle)">
+                <i class="bi bi-plus-lg me-1"></i>Add Task
+            </button>
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="mt-2 text-danger small"><i class="bi bi-exclamation-circle me-1"></i>@errorMessage</div>
+    }
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs">
+    <button class="filter-tab @(currentFilter == FilterType.All ? "active" : "")"
+            @onclick="() => currentFilter = FilterType.All">
+        All
+    </button>
+    <button class="filter-tab @(currentFilter == FilterType.Active ? "active" : "")"
+            @onclick="() => currentFilter = FilterType.Active">
+        Active
+    </button>
+    <button class="filter-tab @(currentFilter == FilterType.Completed ? "active" : "")"
+            @onclick="() => currentFilter = FilterType.Completed">
+        Completed
+    </button>
+</div>
+
+<!-- Todo List -->
+@{
+    var items = TodoService.GetByFilter(currentFilter);
+}
+
+@if (items.Count == 0)
+{
+    <div class="empty-state">
+        <i class="bi bi-clipboard-check"></i>
+        <h3>@(currentFilter == FilterType.Completed ? "No completed tasks yet" : currentFilter == FilterType.Active ? "All tasks are done!" : "No tasks yet")</h3>
+        <p>@(currentFilter == FilterType.All ? "Add your first task above to get started." : "Switch to 'All' to see every task.")</p>
+    </div>
+}
+else
+{
+    <div class="todo-list">
+        @foreach (var item in items.OrderByDescending(t => (int)t.Priority).ThenBy(t => t.CreatedAt))
+        {
+            var isEditing = editingId == item.Id;
+            <div class="todo-item @(item.IsCompleted ? "completed" : "") priority-@item.Priority.ToString().ToLower()">
+
+                <!-- Checkbox -->
+                <button class="todo-checkbox @(item.IsCompleted ? "checked" : "")"
+                        @onclick="() => ToggleItem(item.Id)"
+                        title="@(item.IsCompleted ? "Mark as active" : "Mark as complete")">
+                    @if (item.IsCompleted)
+                    {
+                        <i class="bi bi-check2"></i>
+                    }
+                </button>
+
+                <!-- Content -->
+                <div class="todo-content">
+                    @if (isEditing)
+                    {
+                        <div class="edit-form">
+                            <input @bind="editTitle" class="form-control mb-2" placeholder="Task title" maxlength="200" />
+                            <input @bind="editDescription" class="form-control mb-2" placeholder="Description (optional)" maxlength="500" />
+                            <select @bind="editPriority" class="form-select mb-2">
+                                <option value="@Priority.Low">🟢 Low</option>
+                                <option value="@Priority.Medium">🟡 Medium</option>
+                                <option value="@Priority.High">🔴 High</option>
+                            </select>
+                            <div class="d-flex gap-2">
+                                <button class="btn-save" @onclick="() => SaveEdit(item.Id)">
+                                    <i class="bi bi-check2 me-1"></i>Save
+                                </button>
+                                <button class="btn-cancel" @onclick="CancelEdit">Cancel</button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="todo-title">@item.Title</div>
+                        @if (!string.IsNullOrEmpty(item.Description))
+                        {
+                            <div class="todo-description">@item.Description</div>
+                        }
+                        <div class="todo-meta">
+                            <span class="priority-badge @item.Priority.ToString().ToLower()">
+                                @item.Priority
+                            </span>
+                            <span class="todo-date">
+                                <i class="bi bi-calendar3 me-1"></i>@item.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")
+                            </span>
+                            @if (item.IsCompleted && item.CompletedAt.HasValue)
+                            {
+                                <span class="todo-date text-success">
+                                    <i class="bi bi-check-circle me-1"></i>Done @item.CompletedAt.Value.ToLocalTime().ToString("MMM d")
+                                </span>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <!-- Actions -->
+                @if (!isEditing)
+                {
+                    <div class="todo-actions">
+                        <button class="btn-icon btn-edit" @onclick="() => StartEdit(item)" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn-icon btn-delete" @onclick="() => DeleteItem(item.Id)" title="Delete">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="list-footer">
+        <span class="items-left">@active item@(active == 1 ? "" : "s") left</span>
+        @if (done > 0)
+        {
+            <button class="btn-clear" @onclick="ClearCompleted">
+                <i class="bi bi-trash3 me-1"></i>Clear completed
+            </button>
+        }
+    </div>
+}
+
+@code {
+    private string newTitle = string.Empty;
+    private string newDescription = string.Empty;
+    private Priority newPriority = Priority.Medium;
+    private FilterType currentFilter = FilterType.All;
+    private string errorMessage = string.Empty;
+
+    private int? editingId;
+    private string editTitle = string.Empty;
+    private string editDescription = string.Empty;
+    private Priority editPriority = Priority.Medium;
+
+    private void AddTask()
+    {
+        errorMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(newTitle)) return;
+
+        try
+        {
+            TodoService.Add(newTitle, newDescription, newPriority);
+            newTitle = string.Empty;
+            newDescription = string.Empty;
+            newPriority = Priority.Medium;
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void HandleAddKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") AddTask();
+    }
+
+    private void ToggleItem(int id) => TodoService.ToggleComplete(id);
+
+    private void DeleteItem(int id)
+    {
+        if (editingId == id) editingId = null;
+        TodoService.Delete(id);
+    }
+
+    private void StartEdit(TodoItem item)
+    {
+        editingId = item.Id;
+        editTitle = item.Title;
+        editDescription = item.Description ?? string.Empty;
+        editPriority = item.Priority;
+    }
+
+    private void SaveEdit(int id)
+    {
+        if (string.IsNullOrWhiteSpace(editTitle)) return;
+        TodoService.Update(id, editTitle, editDescription, editPriority);
+        editingId = null;
+    }
+
+    private void CancelEdit() => editingId = null;
+
+    private void ClearCompleted() => TodoService.ClearCompleted();
+}
+
