@@ -1,7 +1,9 @@
 # Class Notes
 
-https://learn.microsoft.com/en-us/training/paths/github-actions/
-https://learn.microsoft.com/en-us/training/paths/github-actions-2/
+## Content
+
+- https://learn.microsoft.com/en-us/training/paths/github-actions/
+- https://learn.microsoft.com/en-us/training/paths/github-actions-2/
 
 ## Labs
 - Lab 1 - Hello GitHub Actions - https://github.com/skills/hello-github-actions
