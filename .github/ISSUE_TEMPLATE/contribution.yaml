@@ -1,7 +1,7 @@
 name: 🚀 DarkSpace Contribution
 description: Propose something new for The DarkSpace
 title: "[DarkSpace]: "
-labels: ["contribution"]
+labels: ["enhancement", "Awesome issue"]
 body:
 
   - type: markdown
@@ -44,11 +44,11 @@ body:
     id: urgency
     attributes:
       label: ⏱️ Urgency Level
-      description: How urgently is this needed for space operations?
+      description: How urgently is this needed?
       options:
-        - Critical (Crew morale depends on this)
-        - High (Useful for long missions)
-        - Medium (Nice to have)
+        - Critical 
+        - High
+        - Medium
         - Low (For vibes only)
 
   - type: textarea
@@ -64,5 +64,5 @@ body:
       label: ✅ Pre-Launch Checklist
       options:
         - label: I have verified this content will not anger the void
-        - label: I understand my PR may be reviewed by space pirates
+        - label: I understand this Issue may be reviewed by the entire class
         - label: I am prepared to fork responsibly
